@@ -15,16 +15,16 @@ import java.io.File;
 
 public class MainActivity extends AppCompatActivity {
 
-    SQLiteDatabase sqLiteDB ;
+    //SQLiteDatabase sqLiteDB ;
+    ContactDBHelper dbHelper = null ;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        sqLiteDB = init_database();
+        //sqLiteDB = init_database() ;
         init_tables() ;
-
         load_values() ;
 
         Button buttonSave = (Button)findViewById(R.id.buttonSave) ;
@@ -66,7 +66,8 @@ public class MainActivity extends AppCompatActivity {
 
     private void init_tables() {
 
-        if(sqLiteDB != null) {
+        dbHelper = new ContactDBHelper(this) ;
+        /* if(sqLiteDB != null) {
             String sqlCreateTbl = "CREATE TABLE IF NOT EXISTS CONTACT_T (" +
                     "NUM "    +   "INTEGER NOT NULL," +
                     "NAME "    +   "TEXT," +
@@ -74,18 +75,21 @@ public class MainActivity extends AppCompatActivity {
                     "OVER20 "    +   "INTEGER" + ")" ;
             System.out.println(sqlCreateTbl);
             sqLiteDB.execSQL(sqlCreateTbl);
-        }
+        }*/
     }
 
     private void load_values() {
-        if(sqLiteDB != null){
-            String sqlQueryTbl = "SELECT * FROM CONTACT_T" ;
-            Cursor cursor = null ;
+        //if(sqLiteDB != null){
+        //    String sqlQueryTbl = "SELECT * FROM CONTACT_T" ;
+        //    Cursor cursor = null ;
 
             //퀴리 실행
-            cursor = sqLiteDB.rawQuery(sqlQueryTbl, null) ;
+        //    cursor = sqLiteDB.rawQuery(sqlQueryTbl, null) ;
+        SQLiteDatabase db = dbHelper.getReadableDatabase() ;
+        Cursor cursor = db.rawQuery(ContactDBCtrct.SQL_SELECT, null ) ;
 
-            if(cursor.moveToNext()){
+        //    if(cursor.moveToNext()){
+        if(cursor.moveToFirst()){
                 // no (integer) 값 가져오기
                 int num = cursor.getInt(0) ;
                 EditText editTextNo = (EditText)findViewById(R.id.editTextNo) ;
@@ -109,21 +113,26 @@ public class MainActivity extends AppCompatActivity {
                 } else {
                     checkBoxOver20.setChecked(true);
                 }
-            }
+        //    }
         }
     }
 
     private void save_values() {
-        if(sqLiteDB != null) {
+        //if(sqLiteDB != null) {
             //delete
-            sqLiteDB.execSQL("DELETE FROM CONTACT_T");
+            //sqLiteDB.execSQL("DELETE FROM CONTACT_T");
+            SQLiteDatabase db = dbHelper.getWritableDatabase() ;
+
+            db.execSQL(ContactDBCtrct.SQL_DELETE);
 
             EditText editTextNo = (EditText)findViewById(R.id.editTextNo) ;
-            String noText = editTextNo.getText().toString() ;
-            int num = 0 ;
-            if( noText != null && !noText.isEmpty()){
-                num = Integer.parseInt(noText) ;
-            }
+            int num = Integer.parseInt(editTextNo.getText().toString()) ;
+
+        //    String noText = editTextNo.getText().toString() ;
+        //    int num = 0 ;
+        //    if( noText != null && !noText.isEmpty()){
+        //        num = Integer.parseInt(noText) ;
+        //   }
 
             EditText editTextName = (EditText)findViewById(R.id.editTextName) ;
             String name = editTextName.getText().toString() ;
@@ -141,16 +150,18 @@ public class MainActivity extends AppCompatActivity {
                     "'" + phone + "'," +
                     ((isOver20 == true) ? "1" : "0" ) + ")" ;
             System.out.println(sqlInsert);
-
-            sqLiteDB.execSQL(sqlInsert);
-        }
+            db.execSQL(sqlInsert);
+            //sqLiteDB.execSQL(sqlInsert);
+        //}
     }
 
     private void delete_values(){
-        if(sqLiteDB != null ){
-            String sqlDelete = "DELETE FROM CONTACT_T" ;
+        //if(sqLiteDB != null ){
+            //String sqlDelete = "DELETE FROM CONTACT_T" ;
+            //sqLiteDB.execSQL(sqlDelete);
+            SQLiteDatabase db = dbHelper.getWritableDatabase() ;
 
-            sqLiteDB.execSQL(sqlDelete);
+            db.execSQL(ContactDBCtrct.SQL_DELETE);
 
             EditText editTextNo = (EditText)findViewById(R.id.editTextNo) ;
             editTextNo.setText("");
@@ -163,6 +174,6 @@ public class MainActivity extends AppCompatActivity {
 
             CheckBox checkBoxOver20 = (CheckBox) findViewById(R.id.checkBoxOver20) ;
             checkBoxOver20.setChecked(false);
-        }
+        //}
     }
 }
