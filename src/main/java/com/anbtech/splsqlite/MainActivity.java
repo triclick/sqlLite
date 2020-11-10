@@ -17,6 +17,7 @@ public class MainActivity extends AppCompatActivity {
 
     //SQLiteDatabase sqLiteDB ;
     ContactDBHelper dbHelper = null ;
+    public String cursorMode ;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -24,8 +25,9 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         //sqLiteDB = init_database() ;
+        cursorMode = "init" ;
         init_tables() ;
-        load_values() ;
+        load_values(cursorMode) ;
 
         Button buttonSave = (Button)findViewById(R.id.buttonSave) ;
         buttonSave.setOnClickListener(new Button.OnClickListener(){
@@ -43,13 +45,39 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        Button buttonPrev = (Button)findViewById(R.id.buttonPrev) ;
+        buttonPrev.setOnClickListener(new Button.OnClickListener(){
+            @Override
+            public void onClick(View v){
+                cursorMode = "prev" ;
+                load_values(cursorMode);
+            }
+        });
+
+        Button buttonNext = (Button)findViewById(R.id.buttonNext) ;
+        buttonPrev.setOnClickListener(new Button.OnClickListener(){
+            @Override
+            public void onClick(View v){
+                cursorMode = "next" ;
+                load_values(cursorMode);
+            }
+        });
+
+        Button buttonQuery = (Button)findViewById(R.id.buttonQuery) ;
+        buttonQuery.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v){
+                query_values();
+            }
+        });
+
     }
 
     private SQLiteDatabase init_database() {
         SQLiteDatabase db = null ;
 
         // File file = getDatabasePath("contact.db") ;
-        File file = new File(getFilesDir(),"contact.db") ;
+        File file = new File(getFilesDir(),"contact1.db") ;
 
         System.out.println("PATH :" + file.toString()) ;
         try{
@@ -78,43 +106,63 @@ public class MainActivity extends AppCompatActivity {
         }*/
     }
 
-    private void load_values() {
+    private void load_values(String mode){
         //if(sqLiteDB != null){
         //    String sqlQueryTbl = "SELECT * FROM CONTACT_T" ;
         //    Cursor cursor = null ;
 
             //퀴리 실행
         //    cursor = sqLiteDB.rawQuery(sqlQueryTbl, null) ;
+        int num = 0, over20 = 0;
+        String name = null, phone = null ;
+
         SQLiteDatabase db = dbHelper.getReadableDatabase() ;
         Cursor cursor = db.rawQuery(ContactDBCtrct.SQL_SELECT, null ) ;
 
-        //    if(cursor.moveToNext()){
-        if(cursor.moveToFirst()){
-                // no (integer) 값 가져오기
-                int num = cursor.getInt(0) ;
-                EditText editTextNo = (EditText)findViewById(R.id.editTextNo) ;
+        if(mode == "init" ){
+            if( cursor.moveToFirst()){
+                num = cursor.getInt(0);
+                name = cursor.getString(1);
+                phone = cursor.getString(2);
+                over20 = cursor.getInt(3);
+                // num(int) 값 가져오기
+                EditText editTextNo = (EditText) findViewById(R.id.editTextNo);
                 editTextNo.setText(Integer.toString(num));
 
                 // name(text) 값 가져오기
-                String name = cursor.getString(1) ;
-                EditText editTextName = (EditText)findViewById(R.id.editTextName) ;
+                EditText editTextName = (EditText) findViewById(R.id.editTextName);
                 editTextName.setText(name);
 
                 // phone(TEXT) 값 가져오기
-                String phone = cursor.getString(2) ;
-                EditText editTextPhone = (EditText)findViewById(R.id.editTextPhone) ;
+                EditText editTextPhone = (EditText) findViewById(R.id.editTextPhone);
                 editTextPhone.setText(phone);
 
                 // over20 (integer) 값 가져오기
-                int over20 = cursor.getInt(3) ;
-                CheckBox checkBoxOver20 = (CheckBox)findViewById(R.id.checkBoxOver20) ;
-                if(over20 == 0){
+                CheckBox checkBoxOver20 = (CheckBox) findViewById(R.id.checkBoxOver20);
+                if (over20 == 0) {
                     checkBoxOver20.setChecked(false);
                 } else {
                     checkBoxOver20.setChecked(true);
                 }
-        //    }
+            }
         }
+
+    }
+
+    private void query_values(){
+        SQLiteDatabase db = dbHelper.getReadableDatabase() ;
+        Cursor cursor = db.rawQuery(ContactDBCtrct.SQL_SELECT, null) ;
+
+        String strQuery = "DB List \r\n" ;
+        while(cursor.moveToNext()){
+            strQuery += cursor.getInt(0) + "," + cursor.getString(1) + "," + cursor.getString(2) + "," + cursor.getInt(3) + "\r\n" ;
+        }
+
+        EditText editQuery = (EditText)findViewById(R.id.editTextQuery) ;
+        editQuery.setText(strQuery);
+
+        cursor.close() ;
+        db.close() ;
     }
 
     private void save_values() {
@@ -123,16 +171,10 @@ public class MainActivity extends AppCompatActivity {
             //sqLiteDB.execSQL("DELETE FROM CONTACT_T");
             SQLiteDatabase db = dbHelper.getWritableDatabase() ;
 
-            db.execSQL(ContactDBCtrct.SQL_DELETE);
+            //db.execSQL(ContactDBCtrct.SQL_DELETE);
 
             EditText editTextNo = (EditText)findViewById(R.id.editTextNo) ;
             int num = Integer.parseInt(editTextNo.getText().toString()) ;
-
-        //    String noText = editTextNo.getText().toString() ;
-        //    int num = 0 ;
-        //    if( noText != null && !noText.isEmpty()){
-        //        num = Integer.parseInt(noText) ;
-        //   }
 
             EditText editTextName = (EditText)findViewById(R.id.editTextName) ;
             String name = editTextName.getText().toString() ;
@@ -151,8 +193,6 @@ public class MainActivity extends AppCompatActivity {
                     ((isOver20 == true) ? "1" : "0" ) + ")" ;
             System.out.println(sqlInsert);
             db.execSQL(sqlInsert);
-            //sqLiteDB.execSQL(sqlInsert);
-        //}
     }
 
     private void delete_values(){
