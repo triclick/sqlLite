@@ -27,12 +27,16 @@ public class MainActivity extends AppCompatActivity {
         //sqLiteDB = init_database() ;
         cursorMode = "init" ;
         init_tables() ;
-        load_values(cursorMode) ;
+        SQLiteDatabase db = dbHelper.getReadableDatabase() ;
+        Cursor cursor = db.rawQuery(ContactDBCtrct.SQL_SELECT, null) ;
+        load_values(cursor, cursorMode) ;
 
         Button buttonSave = (Button)findViewById(R.id.buttonSave) ;
         buttonSave.setOnClickListener(new Button.OnClickListener(){
             @Override
             public void onClick(View v){
+                cursor.close();
+                db.close();
                 save_values() ;
             }
         });
@@ -40,8 +44,10 @@ public class MainActivity extends AppCompatActivity {
         Button buttonClear = (Button)findViewById(R.id.buttonClear) ;
         buttonClear.setOnClickListener(new Button.OnClickListener(){
             @Override
-            public void onClick(View v){
-                delete_values() ;
+            public void onClick(View v) {
+                cursor.close();
+                db.close();
+                delete_values();
             }
         });
 
@@ -49,75 +55,57 @@ public class MainActivity extends AppCompatActivity {
         buttonPrev.setOnClickListener(new Button.OnClickListener(){
             @Override
             public void onClick(View v){
-                cursorMode = "prev" ;
-                load_values(cursorMode);
+                if( cursor == null ){
+                    SQLiteDatabase db = dbHelper.getReadableDatabase() ;
+                    Cursor cursor = db.rawQuery(ContactDBCtrct.SQL_SELECT, null) ;
+                }
+                if( !cursor.isFirst() ) {
+                    cursorMode = "prev" ;
+                    load_values(cursor, cursorMode);
+                }
             }
         });
 
         Button buttonNext = (Button)findViewById(R.id.buttonNext) ;
-        buttonPrev.setOnClickListener(new Button.OnClickListener(){
+        buttonNext.setOnClickListener(new Button.OnClickListener(){
             @Override
             public void onClick(View v){
-                cursorMode = "next" ;
-                load_values(cursorMode);
+                if( cursor == null ){
+                    SQLiteDatabase db = dbHelper.getReadableDatabase() ;
+                    Cursor cursor = db.rawQuery(ContactDBCtrct.SQL_SELECT, null) ;
+                }
+                if( !cursor.isLast() ){
+                    cursorMode = "next" ;
+                    load_values(cursor, cursorMode);
+                }
             }
         });
 
         Button buttonQuery = (Button)findViewById(R.id.buttonQuery) ;
-        buttonQuery.setOnClickListener(new View.OnClickListener() {
+        buttonQuery.setOnClickListener(new Button.OnClickListener() {
             @Override
             public void onClick(View v){
-                query_values();
+                if( cursor == null ){
+                    SQLiteDatabase db = dbHelper.getReadableDatabase() ;
+                    Cursor cursor = db.rawQuery(ContactDBCtrct.SQL_SELECT, null) ;
+                }
+                query_values(cursor);
             }
         });
-
-    }
-
-    private SQLiteDatabase init_database() {
-        SQLiteDatabase db = null ;
-
-        // File file = getDatabasePath("contact.db") ;
-        File file = new File(getFilesDir(),"contact1.db") ;
-
-        System.out.println("PATH :" + file.toString()) ;
-        try{
-            db = SQLiteDatabase.openOrCreateDatabase(file, null) ;
-        } catch(SQLiteException e){
-            e.printStackTrace();
-        }
-
-        if(db == null){
-            System.out.println("DB creation failed. " + file.getAbsolutePath()) ;
-        }
-        return db ;
     }
 
     private void init_tables() {
-
         dbHelper = new ContactDBHelper(this) ;
-        /* if(sqLiteDB != null) {
-            String sqlCreateTbl = "CREATE TABLE IF NOT EXISTS CONTACT_T (" +
-                    "NUM "    +   "INTEGER NOT NULL," +
-                    "NAME "    +   "TEXT," +
-                    "PHONE "    +   "TEXT," +
-                    "OVER20 "    +   "INTEGER" + ")" ;
-            System.out.println(sqlCreateTbl);
-            sqLiteDB.execSQL(sqlCreateTbl);
-        }*/
     }
 
-    private void load_values(String mode){
-        //if(sqLiteDB != null){
-        //    String sqlQueryTbl = "SELECT * FROM CONTACT_T" ;
-        //    Cursor cursor = null ;
-
-            //퀴리 실행
-        //    cursor = sqLiteDB.rawQuery(sqlQueryTbl, null) ;
+    private void load_values(Cursor cursor, String mode){
         int num = 0, over20 = 0;
         String name = null, phone = null ;
 
-        SQLiteDatabase db = dbHelper.getReadableDatabase() ;
-        Cursor cursor = db.rawQuery(ContactDBCtrct.SQL_SELECT, null ) ;
+        EditText editTextNo = (EditText) findViewById(R.id.editTextNo);
+        EditText editTextName = (EditText) findViewById(R.id.editTextName);
+        EditText editTextPhone = (EditText) findViewById(R.id.editTextPhone);
+        CheckBox checkBoxOver20 = (CheckBox) findViewById(R.id.checkBoxOver20);
 
         if(mode == "init" ){
             if( cursor.moveToFirst()){
@@ -125,53 +113,51 @@ public class MainActivity extends AppCompatActivity {
                 name = cursor.getString(1);
                 phone = cursor.getString(2);
                 over20 = cursor.getInt(3);
-                // num(int) 값 가져오기
-                EditText editTextNo = (EditText) findViewById(R.id.editTextNo);
-                editTextNo.setText(Integer.toString(num));
-
-                // name(text) 값 가져오기
-                EditText editTextName = (EditText) findViewById(R.id.editTextName);
-                editTextName.setText(name);
-
-                // phone(TEXT) 값 가져오기
-                EditText editTextPhone = (EditText) findViewById(R.id.editTextPhone);
-                editTextPhone.setText(phone);
-
-                // over20 (integer) 값 가져오기
-                CheckBox checkBoxOver20 = (CheckBox) findViewById(R.id.checkBoxOver20);
-                if (over20 == 0) {
-                    checkBoxOver20.setChecked(false);
-                } else {
-                    checkBoxOver20.setChecked(true);
-                }
+            }
+        }
+        else if(mode == "next" ){
+            if( cursor.moveToNext()){
+                num = cursor.getInt(0);
+                name = cursor.getString(1);
+                phone = cursor.getString(2);
+                over20 = cursor.getInt(3);
+            }
+        }
+        else if(mode == "prev" ){
+            if( cursor.moveToPrevious()){
+                num = cursor.getInt(0);
+                name = cursor.getString(1);
+                phone = cursor.getString(2);
+                over20 = cursor.getInt(3);
             }
         }
 
+        // num(int), name(text),phone(TEXT),over20 (integer) 값 가져오기
+        editTextNo.setText(Integer.toString(num));
+        editTextName.setText(name);
+        editTextPhone.setText(phone);
+        if (over20 == 0) {
+            checkBoxOver20.setChecked(false);
+        } else {
+            checkBoxOver20.setChecked(true);
+        }
     }
 
-    private void query_values(){
-        SQLiteDatabase db = dbHelper.getReadableDatabase() ;
-        Cursor cursor = db.rawQuery(ContactDBCtrct.SQL_SELECT, null) ;
-
+    private void query_values(Cursor cursor){
         String strQuery = "DB List \r\n" ;
-        while(cursor.moveToNext()){
-            strQuery += cursor.getInt(0) + "," + cursor.getString(1) + "," + cursor.getString(2) + "," + cursor.getInt(3) + "\r\n" ;
+        if( cursor.moveToFirst()){
+            do {
+                strQuery += cursor.getInt(0) + "," + cursor.getString(1) + "," + cursor.getString(2) + "," + cursor.getInt(3) + "\r\n";
+            }
+            while(cursor.moveToNext()) ;
         }
-
+        cursor.moveToLast() ;
         EditText editQuery = (EditText)findViewById(R.id.editTextQuery) ;
         editQuery.setText(strQuery);
-
-        cursor.close() ;
-        db.close() ;
     }
 
     private void save_values() {
-        //if(sqLiteDB != null) {
-            //delete
-            //sqLiteDB.execSQL("DELETE FROM CONTACT_T");
             SQLiteDatabase db = dbHelper.getWritableDatabase() ;
-
-            //db.execSQL(ContactDBCtrct.SQL_DELETE);
 
             EditText editTextNo = (EditText)findViewById(R.id.editTextNo) ;
             int num = Integer.parseInt(editTextNo.getText().toString()) ;
@@ -196,9 +182,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void delete_values(){
-        //if(sqLiteDB != null ){
-            //String sqlDelete = "DELETE FROM CONTACT_T" ;
-            //sqLiteDB.execSQL(sqlDelete);
             SQLiteDatabase db = dbHelper.getWritableDatabase() ;
 
             db.execSQL(ContactDBCtrct.SQL_DELETE);
