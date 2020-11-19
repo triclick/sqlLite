@@ -18,6 +18,7 @@ public class MainActivity extends AppCompatActivity {
     //SQLiteDatabase sqLiteDB ;
     ContactDBHelper dbHelper = null ;
     public String cursorMode ;
+    public Cursor cursor ;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -28,16 +29,18 @@ public class MainActivity extends AppCompatActivity {
         cursorMode = "init" ;
         init_tables() ;
         SQLiteDatabase db = dbHelper.getReadableDatabase() ;
-        Cursor cursor = db.rawQuery(ContactDBCtrct.SQL_SELECT, null) ;
+        cursor = db.rawQuery(ContactDBCtrct.SQL_SELECT, null) ;
         load_values(cursor, cursorMode) ;
 
         Button buttonSave = (Button)findViewById(R.id.buttonSave) ;
         buttonSave.setOnClickListener(new Button.OnClickListener(){
             @Override
             public void onClick(View v){
-                cursor.close();
-                db.close();
                 save_values() ;
+                cursor.close() ;
+                cursor = db.rawQuery(ContactDBCtrct.SQL_SELECT, null) ;
+                // cursor.close() ;
+                // db.close() ;
             }
         });
 
@@ -45,8 +48,6 @@ public class MainActivity extends AppCompatActivity {
         buttonClear.setOnClickListener(new Button.OnClickListener(){
             @Override
             public void onClick(View v) {
-                cursor.close();
-                db.close();
                 delete_values();
             }
         });
@@ -55,10 +56,6 @@ public class MainActivity extends AppCompatActivity {
         buttonPrev.setOnClickListener(new Button.OnClickListener(){
             @Override
             public void onClick(View v){
-                if( cursor == null ){
-                    SQLiteDatabase db = dbHelper.getReadableDatabase() ;
-                    Cursor cursor = db.rawQuery(ContactDBCtrct.SQL_SELECT, null) ;
-                }
                 if( !cursor.isFirst() ) {
                     cursorMode = "prev" ;
                     load_values(cursor, cursorMode);
@@ -70,10 +67,6 @@ public class MainActivity extends AppCompatActivity {
         buttonNext.setOnClickListener(new Button.OnClickListener(){
             @Override
             public void onClick(View v){
-                if( cursor == null ){
-                    SQLiteDatabase db = dbHelper.getReadableDatabase() ;
-                    Cursor cursor = db.rawQuery(ContactDBCtrct.SQL_SELECT, null) ;
-                }
                 if( !cursor.isLast() ){
                     cursorMode = "next" ;
                     load_values(cursor, cursorMode);
@@ -85,11 +78,14 @@ public class MainActivity extends AppCompatActivity {
         buttonQuery.setOnClickListener(new Button.OnClickListener() {
             @Override
             public void onClick(View v){
-                if( cursor == null ){
+                if( db.isOpen()){
+                    query_values(cursor);
+                }
+                else {
                     SQLiteDatabase db = dbHelper.getReadableDatabase() ;
                     Cursor cursor = db.rawQuery(ContactDBCtrct.SQL_SELECT, null) ;
+                    query_values(cursor);
                 }
-                query_values(cursor);
             }
         });
     }
@@ -147,7 +143,10 @@ public class MainActivity extends AppCompatActivity {
         String strQuery = "DB List \r\n" ;
         if( cursor.moveToFirst()){
             do {
-                strQuery += cursor.getInt(0) + "," + cursor.getString(1) + "," + cursor.getString(2) + "," + cursor.getInt(3) + "\r\n";
+                strQuery += cursor.getInt(0) + ","
+                          + cursor.getString(1) + ","
+                          + cursor.getString(2) + ","
+                          + cursor.getInt(3) + "\r\n";
             }
             while(cursor.moveToNext()) ;
         }
@@ -157,7 +156,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void save_values() {
-            SQLiteDatabase db = dbHelper.getWritableDatabase() ;
+            SQLiteDatabase dbw = dbHelper.getWritableDatabase() ;
 
             EditText editTextNo = (EditText)findViewById(R.id.editTextNo) ;
             int num = Integer.parseInt(editTextNo.getText().toString()) ;
@@ -178,25 +177,22 @@ public class MainActivity extends AppCompatActivity {
                     "'" + phone + "'," +
                     ((isOver20 == true) ? "1" : "0" ) + ")" ;
             System.out.println(sqlInsert);
-            db.execSQL(sqlInsert);
+            dbw.execSQL(sqlInsert);
+            dbw.close() ;
     }
 
     private void delete_values(){
-            SQLiteDatabase db = dbHelper.getWritableDatabase() ;
-
-            db.execSQL(ContactDBCtrct.SQL_DELETE);
+            SQLiteDatabase dbw = dbHelper.getWritableDatabase() ;
+            dbw.execSQL(ContactDBCtrct.SQL_DELETE);
+            dbw.close() ;
 
             EditText editTextNo = (EditText)findViewById(R.id.editTextNo) ;
             editTextNo.setText("");
-
             EditText editTextName = (EditText)findViewById(R.id.editTextName) ;
             editTextName.setText("");
-
             EditText editTextPhone = (EditText)findViewById(R.id.editTextPhone) ;
             editTextPhone.setText("");
-
             CheckBox checkBoxOver20 = (CheckBox) findViewById(R.id.checkBoxOver20) ;
             checkBoxOver20.setChecked(false);
-        //}
     }
 }
